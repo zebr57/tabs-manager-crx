@@ -1,0 +1,1 @@
+console.log('crx config main.ts')

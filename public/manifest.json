@@ -1,0 +1,34 @@
+{
+  "name": "Chrome插件V3",
+  "version": "1.0",
+  "description": "基于Vite的chrome插件V3 Demo",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    },
+    "default_title": "Vue CRX MV3"
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+  "background": {
+    "service_worker": "/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/index.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["tabGroups", "tabs", "storage", "bookmarks"],
+  "host_permissions": []
+}
