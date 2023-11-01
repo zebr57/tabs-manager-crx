@@ -1,8 +1,6 @@
-import { name } from "./test";
-console.log("background.index.ts", name);
 import { GroupType } from "./type";
 
-const regexp = new RegExp("https://(.*?)/");
+const urlRegex = /\/\/(www\.)?([^/]+)/;
 let tabsList: chrome.tabs.Tab[] = [];
 let groupObj: { [key: string]: any } = {}; // 分组集合
 let urlArr: string[] = [];
@@ -14,7 +12,7 @@ const initData = async () => {
   tabsList = await chrome.tabs.query({ currentWindow: true }); // 最新所有选项卡
   tabsList.forEach((tab: chrome.tabs.Tab) => {
     if (tab.url) {
-      const matchArr: RegExpMatchArray | null = tab.url.match(regexp);
+      const matchArr: RegExpMatchArray | null = tab.url.match(urlRegex);
       if (matchArr) {
         urlArr.push(matchArr[0] as string);
       }
@@ -25,7 +23,7 @@ const initData = async () => {
   // 按域名分组
   for (const tab of tabsList) {
     if (tab.url) {
-      const matchArr: RegExpMatchArray | null = tab.url.match(regexp);
+      const matchArr: RegExpMatchArray | null = tab.url.match(urlRegex);
       if (matchArr) {
         const url = matchArr?.[0];
         if (url) {
@@ -94,29 +92,13 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 // 添加tabs.onCreated事件(新建标签页)
 chrome.tabs.onCreated.addListener(function (tab: chrome.tabs.Tab) {
   chrome.storage.sync.get(["isAuto"], async function (result) {
+    // 1. 是否开启
     if (!result.isAuto) return;
-    if (tab.pendingUrl) {
-      let matchArr: RegExpMatchArray | null = tab.pendingUrl.match(regexp);
-      const domain = matchArr?.[0];
-      if (!domain) return; // 不是正确域名，终止操作
-
-      const group: GroupType | undefined = groupTree.find((e) => e.url == domain);
-      if (group && group.groupId != -2) {
-        chrome.tabs.group({ tabIds: tab.id, groupId: group.groupId });
-      } else {
-        await initData();
-        // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
-        const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
-        // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
-        const findTabs = noGroupTabs.filter((e) => e.url?.indexOf(domain) != -1);
-        if (findTabs) {
-          const tabIds: number[] = findTabs.map((e) => e.id as number);
-          const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
-          const title = getDomain(tab.pendingUrl);
-          await chrome.tabGroups.update(groupId, { title });
-        }
-      }
-    }
+    // 2. 获取新建选项卡信息，进行匹配创建分组
+    const tabId = tab.id as number
+    chrome.tabs.get(tabId, function (tab) {
+      createMatchGroup(tab);
+    });
   });
 });
 // 监听popup.js按钮点击事件
@@ -176,23 +158,52 @@ chrome.runtime.onMessage.addListener(async (request) => {
 /* ===================================== utils ===================================== */
 
 // 获取域名
-const getDomain = (url: string) => {
+const getDomain = (url: string | undefined) => {
   if (!url) return "";
-  const domainMatch: RegExpMatchArray | null = url.match(/^(https?:\/\/)?([^/]+)\//);
+  const matches: RegExpMatchArray | null = url.match(urlRegex); // 匹配主机名部分
 
-  if (domainMatch) {
-    const domain: string = domainMatch[2];
-    const domainParts: string[] = domain.split(".");
-    if (domainParts.length >= 2) {
-      const subdomain: string = domainParts[0];
-      return subdomain;
-    } else {
-      console.log("无法提取子域名");
-    }
+  if (matches && matches.length > 2) {
+    const extractedDomain = matches[2];
+    return extractedDomain;
   } else {
-    console.log("无法提取域名");
+    console.log("无法匹配域名");
   }
   return "";
+};
+// 找出存在两个及以上标签页生成分组
+const createMatchGroup = async (tab: chrome.tabs.Tab) => {
+  if (tab.pendingUrl) {
+    let matchArr: RegExpMatchArray | null = tab.pendingUrl.match(urlRegex);
+    const domain = matchArr?.[0];
+    console.log("新打开标签域名：", domain);
+
+    if (!domain) return; // 不是正确域名，终止操作
+    // 这里有个问题有些网站是http://wwww.ex.com 跳转 https://wwww.ex.com，导致创建不了分组。
+    // 解决：改变匹配正则，只匹配域名
+
+    const group: GroupType | undefined = groupTree.find((e) => e.url == domain);
+    if (group && group.groupId != -2) {
+      chrome.tabs.group({ tabIds: tab.id, groupId: group.groupId });
+    } else {
+      await initData();
+      // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
+      const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
+      console.log("未分组选项卡：", noGroupTabs);
+      // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
+      const findTabs = noGroupTabs.filter((e) => e.url?.indexOf(domain) != -1);
+      if (findTabs) {
+        const tabIds: number[] = findTabs.map((e) => e.id as number);
+
+        if (tabIds.length == 0) return;
+
+        const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
+        const title = getDomain(tab.pendingUrl);
+        await chrome.tabGroups.update(groupId, { title });
+      }
+    }
+  } else {
+    console.warn("新打开选项卡pendingUrl：", tab.pendingUrl);
+  }
 };
 
 // const setGroup = (tab: chrome.tabs.Tab) => {
