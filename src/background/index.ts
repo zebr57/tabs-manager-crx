@@ -5,6 +5,7 @@ let tabsList: chrome.tabs.Tab[] = [];
 let groupObj: { [key: string]: any } = {}; // 分组集合
 let urlArr: string[] = [];
 let groupTree: GroupType[] = [];
+let tabList: chrome.tabs.Tab[] = [];
 
 const initData = async () => {
   groupObj = {}; // 分组集合重置
@@ -12,9 +13,9 @@ const initData = async () => {
   tabsList = await chrome.tabs.query({ currentWindow: true }); // 最新所有选项卡
   tabsList.forEach((tab: chrome.tabs.Tab) => {
     if (tab.url) {
-      const matchArr: RegExpMatchArray | null = tab.url.match(urlRegex);
-      if (matchArr) {
-        urlArr.push(matchArr[0] as string);
+      const url = getDomain(tab.url);
+      if (url) {
+        urlArr.push(url);
       }
     }
   });
@@ -23,17 +24,15 @@ const initData = async () => {
   // 按域名分组
   for (const tab of tabsList) {
     if (tab.url) {
-      const matchArr: RegExpMatchArray | null = tab.url.match(urlRegex);
-      if (matchArr) {
-        const url = matchArr?.[0];
-        if (url) {
-          const flag = urlArr.includes(url);
-          if (flag) {
-            if (!groupObj[url]) {
-              groupObj[url] = [tab];
-            } else {
-              groupObj[url].push(tab);
-            }
+      const url = getDomain(tab.url);
+
+      if (url) {
+        const flag = urlArr.includes(url);
+        if (flag) {
+          if (!groupObj[url]) {
+            groupObj[url] = [tab];
+          } else {
+            groupObj[url].push(tab);
           }
         }
       }
@@ -91,21 +90,23 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 
 // 添加tabs.onCreated事件(新建标签页)
 chrome.tabs.onCreated.addListener(function (tab: chrome.tabs.Tab) {
-  chrome.storage.sync.get(["isAuto"], async function (result) {
-    // 1. 是否开启
-    if (!result.isAuto) return;
-    // 2. 获取新建选项卡信息，进行匹配创建分组
-    const tabId = tab.id as number
-    chrome.tabs.get(tabId, function (tab) {
-      createMatchGroup(tab);
-    });
-  });
+  console.log(tab);
 });
 // 监听popup.js按钮点击事件
 chrome.runtime.onMessage.addListener(async (request) => {
   console.log(request, activeTab);
-  const { action } = request;
-  if (action == "autoGroup") {
+  const { action, tab, isLast } = request;
+  if (tab) {
+    tabList.push(tab);
+    const tabIds: number[] = tabList.map(({ id }: chrome.tabs.Tab) => id as number);
+    chrome.tabs.group({ tabIds }, function () {
+      console.log("create group success!!");
+      if (isLast) {
+        tabList = [];
+        chrome.tabs.update(tab.id, { active: true });
+      }
+    }); // 组合标签页
+  } else if (action == "autoGroup") {
     await autoGroup();
   }
   if (!activeTab) return;
@@ -129,6 +130,21 @@ chrome.runtime.onMessage.addListener(async (request) => {
   } else {
     // chrome.tabs.create({ url: "chrome-extension://pgapimkopipddcbfnmbebbnfhbkmpjoe/popup/popup.html" });
     console.log("当前页面没有分组");
+  }
+});
+chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+  // 当地址栏URL变化时执行处理逻辑
+  if (changeInfo.url) {
+    console.log("地址栏URL变化：", tabId, changeInfo.url, tab);
+    // 在此处进行其他操作
+    chrome.storage.sync.get(["isAuto"], async function (result) {
+      // 1. 是否开启
+      if (!result.isAuto) return;
+      // 2. 获取新建选项卡信息，进行匹配创建分组
+      chrome.tabs.get(tabId, function (tab) {
+        createMatchGroup(tab);
+      });
+    });
   }
 });
 /* ===================================== 监听行为 end ===================================== */
@@ -172,9 +188,11 @@ const getDomain = (url: string | undefined) => {
 };
 // 找出存在两个及以上标签页生成分组
 const createMatchGroup = async (tab: chrome.tabs.Tab) => {
-  if (tab.pendingUrl) {
-    let matchArr: RegExpMatchArray | null = tab.pendingUrl.match(urlRegex);
-    const domain = matchArr?.[0];
+  await initData();
+  console.log("groupTree", groupTree);
+
+  if (tab.url) {
+    const domain = getDomain(tab.url);
     console.log("新打开标签域名：", domain);
 
     if (!domain) return; // 不是正确域名，终止操作
@@ -182,10 +200,14 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
     // 解决：改变匹配正则，只匹配域名
 
     const group: GroupType | undefined = groupTree.find((e) => e.url == domain);
-    if (group && group.groupId != -2) {
-      chrome.tabs.group({ tabIds: tab.id, groupId: group.groupId });
+    console.log(group, "group");
+
+    if (group && group.children.length >= 3) {
+      chrome.tabGroups.query({}, (groups) => {
+        const group = groups.find((e) => e.title == domain);
+        chrome.tabs.group({ tabIds: tab.id, groupId: group?.id });
+      });
     } else {
-      await initData();
       // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
       const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
       console.log("未分组选项卡：", noGroupTabs);
@@ -194,15 +216,15 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
       if (findTabs) {
         const tabIds: number[] = findTabs.map((e) => e.id as number);
 
-        if (tabIds.length == 0) return;
+        if (tabIds.length <= 1) return;
 
-        const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
-        const title = getDomain(tab.pendingUrl);
+        const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+        const title = getDomain(tab.url);
         await chrome.tabGroups.update(groupId, { title });
       }
     }
   } else {
-    console.warn("新打开选项卡pendingUrl：", tab.pendingUrl);
+    console.warn("新打开选项卡url：", tab.url);
   }
 };
 

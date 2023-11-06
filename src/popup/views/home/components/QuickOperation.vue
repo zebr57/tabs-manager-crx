@@ -1,8 +1,6 @@
 <template>
   <div class="quick-operation-container">
-    <el-button type="primary" size="small" @click="handleCreateGroup">一键生成分组</el-button>
-    <el-button type="primary" size="small" @click="handleCancelGroup">一键取消分组</el-button>
-    <el-button type="primary" size="small" @click="handleCloseGroup">一键关闭分组</el-button>
+    <el-button type="primary" size="small" @click="handleCreateGroup" style="margin-right: 12px">一键生成分组</el-button>
     <el-switch
       v-model="isAuto"
       size="large"
@@ -95,16 +93,6 @@ const handleCreateGroup = async () => {
   } else {
     ElMessage("当前不存在相同域名的标签页");
   }
-};
-// 一键取消
-const handleCancelGroup = () => {
-  // 向后台脚本发送消息，触发取消分组操作
-  chrome.runtime.sendMessage({ action: "cancelGroup" });
-};
-// 一键关闭
-const handleCloseGroup = () => {
-  // 向后台脚本发送消息，触发取消分组操作
-  chrome.runtime.sendMessage({ action: "closeGroup" });
 };
 // 是否开启自动分组
 const handleChangeAuto = () => {

@@ -1,26 +1,28 @@
 <template>
   <div class="current-tabs-container">
-    <div>当前标签</div>
-    <el-tree :data="tabTree" :props="defaultProps" node-key="id" default-expand-all @node-click="handleNodeClick">
+    <!-- 树 -->
+    <el-tree ref="RefTree" :data="tabTree" :props="defaultProps" node-key="id" default-expand-all @node-click="handleNodeClick">
       <template #default="{ node, data }">
         <div class="custom-tree-node">
           <div class="node-left">
             <img v-if="data.favIconUrl" :src="data.favIconUrl" class="icon-img" />
             <span v-else class="icon-img" :style="{ backgroundColor: data.color }"></span>
-            <span class="title-box" :style="{ fontWeight: data.isRootNode ? 600 : 400 }">{{ data.title }}</span>
+            <el-input
+              v-if="data.isRootNode && checkId == data.id"
+              v-model="data.title"
+              placeholder="请输入标题"
+              size="small"
+              style="width: 200px"
+              @click.stop="() => {}"
+              @keydown.enter="handleSubmit(data)"
+            ></el-input>
+            <span v-else class="title-box" :class="{ 'group-title': data.isRootNode }" :style="{ fontWeight: data.isRootNode ? 600 : 400 }" @click.stop="handleInput(data)">{{
+              data.title || "未命名"
+            }}</span>
           </div>
           <div class="node-right">
-            <el-tooltip class="box-item" effect="dark" content="移至新窗口" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleMove(data)"><TopRight /></el-icon>
-            </el-tooltip>
-            <el-tooltip v-if="data.isRootNode" class="box-item" effect="dark" content="添加新标签" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleAppend(data)"><Plus /></el-icon>
-            </el-tooltip>
-            <el-tooltip class="box-item" effect="dark" content="保存快照" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleSave(data)"> <Camera /> </el-icon>
-            </el-tooltip>
-            <el-tooltip class="box-item" effect="dark" content="关闭标签" placement="top">
-              <el-icon :size="18" @click.stop="handleClose(node, data)"> <Close /></el-icon>
+            <el-tooltip class="box-item" effect="dark" content="删除" placement="top">
+              <el-icon :size="18" @click.stop="handleDelete(node, data)"> <Delete /></el-icon>
             </el-tooltip>
           </div>
         </div>
@@ -31,7 +33,7 @@
 
 <script setup lang="ts">
 import type Node from "element-plus/es/components/tree/src/model/node";
-import { reactive, onMounted } from "vue";
+import { ref, toRaw, onMounted } from "vue";
 
 // 定义标签节点的类型
 interface TabNode {
@@ -47,82 +49,84 @@ interface TabNode {
   children?: TabNode[];
   isRootNode?: boolean;
 }
-
-let tabTree = reactive<TabNode[]>([]);
+let RefTree = ref("RefTree");
+let tabTree = ref<TabNode[]>([]);
+let titleValue = ref<number | string>("");
+let checkId = ref<number>(0);
 
 const defaultProps = {
   children: "children",
   label: "title",
 };
-const handleNodeClick = (data: TabNode) => {
-  console.log(data);
-};
 
-const handleMove = (data: TabNode) => {
-  // Todo: 移动到新窗口打开
-  if (data.isRootNode) {
-    chrome.windows.create({ focused: true }, (newWindow) => {
-      if (data.children && newWindow) {
-        // 1.将分组移至新窗口
-        chrome.tabGroups.move(data.groupId as number, { windowId: newWindow.id, index: -1 });
-        // 2.移除新窗口默认创建的标签页
-        chrome.tabs.query({ windowId: newWindow.id }, (windowTabs: chrome.tabs.Tab[]) => {
-          const moveTabIds = data.children?.map((tab) => tab.id) as number[];
-          const filterTabIds = windowTabs.filter((tab) => !moveTabIds.includes(tab.id as number));
-          const defaultTabIds = filterTabIds.map((tab) => tab.id) as number[];
-          chrome.tabs.remove(defaultTabIds);
-        });
-      }
-    });
-  } else {
-    // 1.将标签页移至新窗口
-    const tabIds = data.id;
-    chrome.windows.create({ tabId: tabIds });
-  }
-};
-const handleAppend = (data: TabNode) => {
-  // Todo: 在分组下添加标签
-  // 1. 创建新标签
-  const newTab = {
-    url: "chrome://newtab/", // 你要打开的网址
-    active: false,
-  };
-  // 2. 新标签添加至分组中
-  chrome.tabs.create(newTab, (tab) => {
-    chrome.tabs.group({ tabIds: tab.id, groupId: data.groupId });
-  });
-};
-const handleSave = (data: TabNode) => {
-  console.log(data);
-  // Todo：保存当前选项信息
-
-  // 1.获取本地快照
-  chrome.storage.sync.get(["snapshotLogList"], function (result) {
-    console.log("Value currently is " + result.snapshotLogList);
-    let snapshotLogList = result.snapshotLogList || [];
-    console.log(snapshotLogList);
-
-    snapshotLogList.push(data);
-    chrome.storage.sync.set({ snapshotLogList }, function () {
-      console.log("Value is set to " + snapshotLogList);
-      tabTree = result.snapshotLogList;
-    });
-  });
-};
-const handleClose = (node: Node, data: TabNode) => {
-  console.log(node, data);
-  if (data.isRootNode) {
-    // 1. 移除分组
-  } else {
-  }
-};
-
+// 挂载
 onMounted(() => {
   chrome.storage.sync.get(["snapshotLogList"], function (result) {
-    tabTree = result.snapshotLogList ? JSON.parse(result.snapshotLogList) : [];
-    console.log(tabTree, "tabTree");
+    tabTree.value = result.snapshotLogList ? JSON.parse(result.snapshotLogList) : [];
+    console.log(tabTree.value, "tabTree");
+  });
+  chrome.storage.onChanged.addListener(function (changes, namespace) {
+    for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+      if (key == "snapshotLogList") {
+        tabTree.value = newValue ? JSON.parse(newValue) : [];
+      }
+      console.log(`Storage key "${key}" in namespace "${namespace}" changed.`, `Old value was "${oldValue}", new value is "${newValue}".`);
+    }
   });
 });
+/* ===================================== Event ===================================== */
+
+// 点击节点
+const handleNodeClick = async (data: TabNode) => {
+  checkId.value = 0;
+  titleValue.value = "";
+  // 是否为分组or选项卡
+  if (data.isRootNode && data.children && data.children.length != 0) {
+    const children: TabNode[] = data.children;
+    const tabList: TabNode[] = [];
+    children.forEach((e, i) => {
+      chrome.tabs.create({ url: e.url, active: false }, function (tab) {
+        tabList.push(tab as TabNode);
+        chrome.runtime.sendMessage({ action: "createGroup", tab: tab, isLast: i == children.length - 1 });
+      });
+    });
+  } else {
+    chrome.tabs.create({ url: data.url });
+  }
+};
+
+// 修改分组标题
+const handleSubmit = (data: TabNode) => {
+  console.log("修改标题成功", data);
+  setStorageSnapshotLogList();
+};
+// 显示input
+const handleInput = (data: TabNode) => {
+  titleValue.value = data.title || "未命名";
+  checkId.value = data.id;
+};
+
+// 删除
+const handleDelete = (node: Node, data: TabNode) => {
+  // 移除节点
+  const parent = node.parent;
+  const children: TabNode[] = parent.data.children || parent.data;
+  const index = children.findIndex((d) => d.id === data.id);
+  children.splice(index, 1);
+  if (children.length == 0) {
+    tabTree.value = tabTree.value.filter((e) => e.children && e.children.length > 0);
+  } else {
+    tabTree.value = [...tabTree.value];
+  }
+  setStorageSnapshotLogList();
+};
+// 修改本地存储SnapshotLogList
+const setStorageSnapshotLogList = () => {
+  let snapshotLogList = toRaw(tabTree.value) || [];
+  chrome.storage.sync.set({ snapshotLogList: JSON.stringify(snapshotLogList) }, function () {
+    console.log("修改本地存储snapshotLogList成功");
+  });
+};
 </script>
 
 <style lang="scss" scoped>
@@ -143,11 +147,19 @@ onMounted(() => {
       border-radius: 50%;
     }
     .title-box {
-      max-width: 570px;
+      // max-width: 570px;
+      min-width: 50px;
+      height: 28px;
+      line-height: 28px;
+      padding: 0px 4px;
+      margin: 4px 0px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       text-decoration: none;
+    }
+    .group-title:hover {
+      background: #fff;
     }
   }
   .node-right {
@@ -156,8 +168,9 @@ onMounted(() => {
   }
 }
 .custom-tree-node:hover .title-box {
-  width: 450px;
+  // width: 450px;
 }
+
 .custom-tree-node:hover .node-right {
   display: flex;
   justify-content: end;
@@ -166,6 +179,10 @@ onMounted(() => {
 </style>
 <style lang="scss">
 .current-tabs-container {
+  min-height: 150px;
+  .title-h4 {
+    margin-bottom: 12px;
+  }
   .el-tree-node__content {
     height: 36px !important;
     line-height: 36px !important;

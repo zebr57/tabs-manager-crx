@@ -71,8 +71,8 @@ interface TabNode {
 }
 
 let tabTree = ref<TabNode[]>([]);
-let checkId = ref<number>(0);
-let titleValue = ref<number | string>("");
+let checkId = ref<number>(0); // 显示input
+let titleValue = ref<number | string>(""); // input 标题
 
 const defaultProps = {
   children: "children",
@@ -157,14 +157,12 @@ const handleAppend = (data: TabNode) => {
 // 保存快照
 const handleSave = (data: TabNode) => {
   // Todo：保存当前选项信息
-  // 1.获取本地快照
+  // 1.1获取本地快照
   chrome.storage.sync.get(["snapshotLogList"], function (result) {
-    console.log("Value currently is " + result.snapshotLogList);
     let snapshotLogList = result.snapshotLogList ? JSON.parse(result.snapshotLogList) : [];
     snapshotLogList.push(data);
-    chrome.storage.sync.set({ snapshotLogList: JSON.stringify(snapshotLogList) }, function () {
-      console.log("Value is set to " + snapshotLogList);
-    });
+    // 1.2 更新本地快照
+    chrome.storage.sync.set({ snapshotLogList: JSON.stringify(snapshotLogList) }, function () {});
   });
 };
 // 关闭分组、选型卡
