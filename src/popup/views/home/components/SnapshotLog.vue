@@ -130,51 +130,56 @@ const setStorageSnapshotLogList = () => {
 </script>
 
 <style lang="scss" scoped>
-.custom-tree-node {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 620px;
-  font-size: 18px;
-  .node-left {
+.current-tabs-container {
+  width: 470px;
+
+  .custom-tree-node {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    width: 470px;
+    font-size: 18px;
+    .node-left {
+      display: flex;
+      align-items: center;
 
-    .icon-img {
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
-      border-radius: 50%;
+      .icon-img {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        border-radius: 50%;
+      }
+      .title-box {
+        max-width: 260px;
+        min-width: 50px;
+        height: 28px;
+        line-height: 28px;
+        padding: 0px 4px;
+        margin: 4px 0px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-decoration: none;
+      }
+      .group-title:hover {
+        background: #fff;
+      }
     }
-    .title-box {
-      // max-width: 570px;
-      min-width: 50px;
-      height: 28px;
-      line-height: 28px;
-      padding: 0px 4px;
-      margin: 4px 0px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      text-decoration: none;
-    }
-    .group-title:hover {
-      background: #fff;
+    .node-right {
+      display: none;
+      gap: 12px;
+      margin-right: 12px;
     }
   }
-  .node-right {
-    display: none;
-    width: 120px;
+  .custom-tree-node:hover .title-box {
+    // width: 450px;
   }
-}
-.custom-tree-node:hover .title-box {
-  // width: 450px;
-}
 
-.custom-tree-node:hover .node-right {
-  display: flex;
-  justify-content: end;
-  align-items: center;
+  .custom-tree-node:hover .node-right {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+  }
 }
 </style>
 <style lang="scss">

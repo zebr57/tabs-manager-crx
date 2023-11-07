@@ -1,7 +1,7 @@
 {
-  "name": "Chrome插件V3",
+  "name": "标签管理器beta",
   "version": "1.0",
-  "description": "基于Vite的chrome插件V3 Demo",
+  "description": "标签页自动分组、自定义分组功能",
   "manifest_version": 3,
   "action": {
     "default_popup": "index.html",

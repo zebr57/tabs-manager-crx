@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="matching-rule-container">
     <el-input v-model="domainUrl" placeholder="请输入域名" size="small" clearable></el-input>
     <el-input v-model="groupName" placeholder="请输入分组名" size="small" clearable></el-input>
     <el-button type="primary" size="small" @click="handleMatchGroup">生成该域名分组</el-button>
@@ -9,7 +9,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
-
 
 const regexp: RegExp = new RegExp("https://(.*?)/"); /* 此处定义正则表达式 */
 
@@ -42,4 +41,8 @@ const getCurrentTab = async (): Promise<chrome.tabs.Tab> => {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.matching-rule-container {
+  width: 470px;
+}
+</style>

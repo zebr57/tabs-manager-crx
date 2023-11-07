@@ -1,18 +1,16 @@
 # 基于 Vue 3 + TypeScript + Vite 开发的谷歌浏览器扩展插件 - 标签管理
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+项目概述：基于chrome extension API 实现的对于谷歌浏览器标签页自动分组、自定义分组功能。
 
-## Recommended IDE Setup
+应用场景：由于作为开发人员经常使用浏览器时会打开多个页面，切换页面想要打开之前页面时查找不方便，这时可以借助谷歌浏览器自带标签页分组功能，这需要手动一个一个去操作，比较繁琐，因此借助谷歌浏览器插件扩展API，实现自动化、定制化分组管理，非常快捷方便。
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+项目采用Vite+Vue3+Ts+Element-Plus搭建项目，编写node脚本修改打包目录，实现以下功能：
+- 快捷操作：一键生成、取消分组、勾选指定标签页生成分组
+- 当前标签：将当前窗口打开的所有标签以树节点展示，可进行修改分组标题、颜色，展开折叠、移至窗口、记录快照、关闭标签/分组功能
+- 快照记录：保存分组、标签页，方便下次快速打开
+- 自动匹配：输入匹配规则、新打开标签匹配自动分组
+- 书签分组： 一键打开书签下所有页面并生成分组（暂未实现）
 
-## Type Support For `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
-
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
-
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+项目运行： 
+- node v18.14.2
+- 包管理 yarn 

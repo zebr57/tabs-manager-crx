@@ -22,19 +22,19 @@
           </div>
           <div class="node-right">
             <el-tooltip v-if="data.isRootNode" class="box-item" effect="dark" content="折叠|展开" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleCollapsed(data)">
+              <el-icon :size="18" @click.stop="handleCollapsed(data)">
                 <Expand v-show="!data.collapsed" />
                 <Fold v-show="data.collapsed" />
               </el-icon>
             </el-tooltip>
             <el-tooltip class="box-item" effect="dark" content="移至新窗口" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleMove(data)"><TopRight /></el-icon>
+              <el-icon :size="18"  @click.stop="handleMove(data)"><TopRight /></el-icon>
             </el-tooltip>
             <el-tooltip v-if="data.isRootNode" class="box-item" effect="dark" content="添加新标签" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleAppend(data)"><Plus /></el-icon>
+              <el-icon :size="18"  @click.stop="handleAppend(data)"><Plus /></el-icon>
             </el-tooltip>
             <el-tooltip class="box-item" effect="dark" content="保存快照" placement="top">
-              <el-icon :size="18" style="margin-right: 12px" @click.stop="handleSave(data)"> <Camera /> </el-icon>
+              <el-icon :size="18"  @click.stop="handleSave(data)"> <Camera /> </el-icon>
             </el-tooltip>
             <el-tooltip class="box-item" effect="dark" content="关闭标签" placement="top">
               <el-icon :size="18" @click.stop="handleClose(node, data)"> <Close /></el-icon>
@@ -47,8 +47,11 @@
 </template>
 
 <script setup lang="ts">
-import type Node from "element-plus/es/components/tree/src/model/node";
 import { ref, defineProps, onMounted } from "vue";
+
+import { ElNotification } from "element-plus";
+import type Node from "element-plus/es/components/tree/src/model/node";
+
 const { tabsList, groupObj } = defineProps({
   tabsList: Array,
   groupObj: Object,
@@ -162,7 +165,12 @@ const handleSave = (data: TabNode) => {
     let snapshotLogList = result.snapshotLogList ? JSON.parse(result.snapshotLogList) : [];
     snapshotLogList.push(data);
     // 1.2 更新本地快照
-    chrome.storage.sync.set({ snapshotLogList: JSON.stringify(snapshotLogList) }, function () {});
+    chrome.storage.sync.set({ snapshotLogList: JSON.stringify(snapshotLogList) }, function () {
+      ElNotification({
+        title: "保存快照成功",
+        type: "success",
+      });
+    });
   });
 };
 // 关闭分组、选型卡
@@ -245,51 +253,55 @@ const setTabTree = () => {
 </script>
 
 <style lang="scss" scoped>
-.custom-tree-node {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 620px;
-  font-size: 18px;
-  .node-left {
+.current-tabs-container {
+  width: 470px;
+  .custom-tree-node {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    width: 470px;
+    font-size: 18px;
+    .node-left {
+      display: flex;
+      align-items: center;
 
-    .icon-img {
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
-      border-radius: 50%;
+      .icon-img {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        border-radius: 50%;
+      }
+      .title-box {
+        // max-width: 570px;
+        max-width: 260px;
+        height: 28px;
+        line-height: 28px;
+        padding: 0px 4px;
+        margin: 4px 0px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-decoration: none;
+      }
+      .group-title:hover {
+        background: #fff;
+      }
     }
-    .title-box {
-      // max-width: 570px;
-      min-width: 50px;
-      height: 28px;
-      line-height: 28px;
-      padding: 0px 4px;
-      margin: 4px 0px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      text-decoration: none;
-    }
-    .group-title:hover {
-      background: #fff;
+    .node-right {
+      display: none;
+      gap: 12px;
+      margin-right: 12px;
     }
   }
-  .node-right {
-    display: none;
-    width: 120px;
+  .custom-tree-node:hover .title-box {
+    // width: 450px;
   }
-}
-.custom-tree-node:hover .title-box {
-  // width: 450px;
-}
 
-.custom-tree-node:hover .node-right {
-  display: flex;
-  justify-content: end;
-  align-items: center;
+  .custom-tree-node:hover .node-right {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+  }
 }
 </style>
 <style lang="scss">

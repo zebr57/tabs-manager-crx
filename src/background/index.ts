@@ -149,15 +149,17 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 });
 /* ===================================== 监听行为 end ===================================== */
 
-// // 获取所有书签
-// chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
-//   // 处理书签信息
-//   for (const node of bookmarkTreeNodes) {
-//     processBookmarkNode(node);
-//   }
-// });
+// 获取所有书签
+chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
+  // 处理书签信息
+  console.log(bookmarkTreeNodes);
+  
+  // for (const node of bookmarkTreeNodes) {
+  //   processBookmarkNode(node);
+  // }
+});
 
-// // 处理书签节点
+// 处理书签节点
 // function processBookmarkNode(node) {
 //   if (node.children) {
 //     // 这是一个文件夹，递归处理其子节点

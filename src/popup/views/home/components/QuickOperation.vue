@@ -13,7 +13,7 @@
 
     <el-divider direction="horizontal" content-position="left">当前窗口所有标签页</el-divider>
 
-    <el-checkbox-group v-model="checkIds">
+    <el-checkbox-group v-model="checkIds" size="normal">
       <el-checkbox v-for="tab in tabsList" :key="tab.id" :label="tab.id">{{ tab.title }}</el-checkbox>
     </el-checkbox-group>
     <div class="form-box">
@@ -123,6 +123,7 @@ const handleCheckGroup = async () => {
 
 <style lang="scss" scoped>
 .quick-operation-container {
+  width: 470px;
   .el-checkbox {
     width: 100%;
     .el-checkbox__label {
