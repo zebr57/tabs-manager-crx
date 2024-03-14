@@ -48,7 +48,7 @@ const initData = async () => {
       groupTree.push({
         url: key,
         groupId: -2,
-        children: value,
+        children: value
       });
     }
   }
@@ -57,7 +57,7 @@ const initData = async () => {
 };
 initData();
 
-// 根据同域名自动分组
+// 一键根据同域名自动分组
 const autoGroup = async () => {
   await initData();
   if (groupTree && groupTree.length > 0) {
@@ -65,7 +65,7 @@ const autoGroup = async () => {
       const tabIds = item.children.map(({ id }: chrome.tabs.Tab) => id) as number[];
       const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
       item.groupId = groupId;
-      const title = getDomain(item.url);
+      const title = item.url; // url：xxx.com
       await chrome.tabGroups.update(groupId, { title });
     }
   } else {
@@ -153,7 +153,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
   // 处理书签信息
   console.log(bookmarkTreeNodes);
-  
+
   // for (const node of bookmarkTreeNodes) {
   //   processBookmarkNode(node);
   // }
