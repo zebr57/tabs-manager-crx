@@ -63,7 +63,6 @@ const defaultProps = {
 onMounted(() => {
   chrome.storage.sync.get(["snapshotLogList"], function (result) {
     tabTree.value = result.snapshotLogList ? JSON.parse(result.snapshotLogList) : [];
-    console.log(tabTree.value, "tabTree");
   });
   chrome.storage.onChanged.addListener(function (changes, namespace) {
     for (let [key, { oldValue, newValue }] of Object.entries(changes)) {

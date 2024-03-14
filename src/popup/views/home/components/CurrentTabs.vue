@@ -47,15 +47,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 
 import { ElNotification } from "element-plus";
 import type Node from "element-plus/es/components/tree/src/model/node";
 
-const { tabsList, groupObj } = defineProps({
-  tabsList: Array,
-  groupObj: Object,
-});
 
 // 定义标签节点的类型
 interface TabNode {
@@ -84,12 +80,10 @@ const defaultProps = {
 
 // 挂载
 onMounted(async () => {
-  console.log("currentTabs onMounted：", groupObj, tabsList);
   setTabTree();
 });
 
 const handleNodeClick = (data: TabNode) => {
-  console.log(data);
   checkId.value = 0;
   titleValue.value = "";
   if (!data.isRootNode) {

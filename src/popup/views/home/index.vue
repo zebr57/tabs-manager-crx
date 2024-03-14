@@ -62,7 +62,6 @@ onMounted(async () => {
       groupArr.value.push(e);
     }
   }
-  console.log("存在同域名可生成分组：", tabsList.value, groupArr.value, groupObj, urlArr);
 });
 
 const handleClick = (tab: TabsPaneContext, event: Event) => {
