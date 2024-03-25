@@ -1,6 +1,6 @@
 import { GroupType } from "./type";
 
-const urlRegex = /\/\/(www\.)?([^/]+)/;
+const urlRegex = /\/\/(www\.)?([^.]+)/;
 let tabsList: chrome.tabs.Tab[] = [];
 let groupObj: { [key: string]: any } = {}; // 分组集合
 let urlArr: string[] = [];
