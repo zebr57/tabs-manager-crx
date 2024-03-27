@@ -1,77 +1,41 @@
-import { GroupType } from "./type";
+interface GroupType {
+  url: string;
+  groupId: number;
+  children: chrome.tabs.Tab[];
+}
 
 const urlRegex = /\/\/(www\.)?([^.]+)/;
-let tabsList: chrome.tabs.Tab[] = [];
-let groupObj: { [key: string]: any } = {}; // 分组集合
-let urlArr: string[] = [];
-let groupTree: GroupType[] = [];
-let tabList: chrome.tabs.Tab[] = [];
+let tabsList: chrome.tabs.Tab[] = []; // 所有标签页
+let groupByDomainMap: { [key: string]: any } = {}; // 分组集合
+let domainList: string[] = []; // 所有标签页域名
+let groupTree: GroupType[] = []; // 标签页分群显示的树结构
+let snapshotLogTabsList: chrome.tabs.Tab[] = [];
 
 const initData = async () => {
-  groupObj = {}; // 分组集合重置
-  urlArr = []; // key数组重置
-  tabsList = await chrome.tabs.query({ currentWindow: true }); // 最新所有选项卡
+  // 1. 获取全部标签页
+  tabsList = await chrome.tabs.query({ currentWindow: true });
+  // 2. 获取所有url
   tabsList.forEach((tab: chrome.tabs.Tab) => {
     if (tab.url) {
       const url = getDomain(tab.url);
       if (url) {
-        urlArr.push(url);
+        domainList.push(url);
       }
     }
   });
-  // 去重（域名作为唯一key）
-  urlArr = Array.from(new Set(urlArr));
-  // 按域名分组
-  for (const tab of tabsList) {
-    if (tab.url) {
-      const url = getDomain(tab.url);
+  // 3. 去重（域名作为唯一key）
+  domainList = Array.from(new Set(domainList));
+  // 4. 保存所有域名与标签页的 map
+  groupByDomainMap = getGroupByDomain(tabsList);
+  // 5. 用于显示树节点的信息
+  groupTree = getGroupTree(groupByDomainMap);
 
-      if (url) {
-        const flag = urlArr.includes(url);
-        if (flag) {
-          if (!groupObj[url]) {
-            groupObj[url] = [tab];
-          } else {
-            groupObj[url].push(tab);
-          }
-        }
-      }
-    }
-  }
-
-  groupTree = [];
-
-  for (const e of Object.entries(groupObj)) {
-    const key = e[0];
-    const value = e[1];
-    if (value.length > 1) {
-      groupTree.push({
-        url: key,
-        groupId: -2,
-        children: value
-      });
-    }
-  }
-  console.log("当前窗口所有标签页：", tabsList);
+  console.log("域名与标签页的 map", groupByDomainMap);
   console.log("存在同域名可生成分组：", groupTree);
 };
+
 initData();
 
-// 一键根据同域名自动分组
-const autoGroup = async () => {
-  await initData();
-  if (groupTree && groupTree.length > 0) {
-    for (const item of groupTree) {
-      const tabIds = item.children.map(({ id }: chrome.tabs.Tab) => id) as number[];
-      const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
-      item.groupId = groupId;
-      const title = item.url; // url：xxx.com
-      await chrome.tabGroups.update(groupId, { title });
-    }
-  } else {
-    console.log("当前不存在相同域名的标签页");
-  }
-};
 /* ===================================== 监听行为 start ===================================== */
 let activeTab: chrome.tabs.Tab | null = null;
 // 添加tabs.onActivated事件监听器(切换标签页)
@@ -97,12 +61,12 @@ chrome.runtime.onMessage.addListener(async (request) => {
   console.log(request, activeTab);
   const { action, tab, isLast } = request;
   if (tab) {
-    tabList.push(tab);
-    const tabIds: number[] = tabList.map(({ id }: chrome.tabs.Tab) => id as number);
+    snapshotLogTabsList.push(tab);
+    const tabIds: number[] = snapshotLogTabsList.map(({ id }) => id as number);
     chrome.tabs.group({ tabIds }, function () {
       console.log("create group success!!");
       if (isLast) {
-        tabList = [];
+        snapshotLogTabsList = [];
         chrome.tabs.update(tab.id, { active: true });
       }
     }); // 组合标签页
@@ -174,8 +138,9 @@ chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
 // }
 
 /* ===================================== utils ===================================== */
-
-// 获取域名
+/**
+ * @description: 根据url获取域名
+ */
 const getDomain = (url: string | undefined) => {
   if (!url) return "";
   const matches: RegExpMatchArray | null = url.match(urlRegex); // 匹配主机名部分
@@ -187,6 +152,62 @@ const getDomain = (url: string | undefined) => {
     console.log("无法匹配域名");
   }
   return "";
+};
+/**
+ * @description: 按域名归类
+ */
+const getGroupByDomain = (tabsList: chrome.tabs.Tab[]) => {
+  // 按域名分组
+  let res: { [key: string]: any } = {};
+  for (const tab of tabsList) {
+    if (tab.url) {
+      const url = getDomain(tab.url);
+      if (url) {
+        const flag = domainList.includes(url);
+        if (flag) {
+          if (!res[url]) {
+            res[url] = [tab];
+          } else {
+            res[url].push(tab);
+          }
+        }
+      }
+    }
+  }
+  return res;
+};
+/**
+ * @description: 根据归类好的键值({domain: [tab,tab]})，组成分群信息
+ */
+const getGroupTree = (groupByDomainMap: { [key: string]: any }) => {
+  let groupTree = [];
+  for (const e of Object.entries(groupByDomainMap)) {
+    const key = e[0];
+    const value = e[1];
+    if (value.length > 1) {
+      groupTree.push({
+        url: key,
+        groupId: -2,
+        children: value
+      });
+    }
+  }
+  return groupTree;
+};
+// 一键根据同域名自动分组
+const autoGroup = async () => {
+  await initData();
+  if (groupTree && groupTree.length > 0) {
+    for (const item of groupTree) {
+      const tabIds = item.children.map(({ id }: chrome.tabs.Tab) => id) as number[];
+      const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+      item.groupId = groupId;
+      const title = item.url; // url：xxx.com
+      await chrome.tabGroups.update(groupId, { title });
+    }
+  } else {
+    console.log("当前不存在相同域名的标签页");
+  }
 };
 // 找出存在两个及以上标签页生成分组
 const createMatchGroup = async (tab: chrome.tabs.Tab) => {
