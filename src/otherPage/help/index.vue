@@ -1,5 +1,5 @@
 <template>
-  <div>help</div>
+  <div>帮助页面</div>
 </template>
 
 <script setup lang="ts"></script>
