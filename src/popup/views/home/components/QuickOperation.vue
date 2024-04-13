@@ -1,21 +1,40 @@
 <template>
   <div class="quick-operation-container">
-    <el-button type="primary" size="small" @click="handleCreateGroup" style="margin-right: 12px">一键生成分组</el-button>
+    <!-- 快捷操作 -->
+    <el-button type="primary" size="small" @click="handleCreateGroup">一键生成分组</el-button>
+    <el-button type="primary" size="small" @click="handleCancelGroup">一键取消分组</el-button>
+
     <el-switch
+      v-model="isAutoSort"
+      size="large"
+      inline-prompt
+      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949; margin-left: 12px"
+      active-text="开启自动排序"
+      inactive-text="关闭自动排序"
+      @change="handleChangeAutoSort"
+    />
+    <el-switch
+      v-show="isAutoSort"
       v-model="isAuto"
       size="large"
       inline-prompt
-      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949; margin-left: 12px"
       active-text="开启自动分组"
       inactive-text="关闭自动分组"
       @change="handleChangeAuto"
     />
 
-    <el-divider direction="horizontal" content-position="left">当前窗口所有标签页</el-divider>
-
+    <el-divider direction="horizontal" content-position="left">选择标签页创建分组</el-divider>
+    <!-- 当前窗口所有标签页 -->
     <el-checkbox-group v-model="checkIds" size="normal">
-      <el-checkbox v-for="tab in tabsList" :key="tab.id" :label="tab.id">{{ tab.title }}</el-checkbox>
+      <el-checkbox v-for="tab in tabsList" :key="tab.id" :label="tab.id">
+        <div style="display: flex; align-items: center; gap: 4px">
+          <img :src="tab.favIconUrl" alt="" srcset="" width="16" height="16" />
+          {{ tab.title }}
+        </div>
+      </el-checkbox>
     </el-checkbox-group>
+    <!-- 表单控件 创建分组 -->
     <div class="form-box">
       <div class="form-title">
         <el-input v-model="groupTitle" placeholder="请输入分组名" size="small" clearable></el-input>
@@ -55,13 +74,13 @@ const { tabsList, groupArr } = defineProps({
   tabsList: {
     type: Array as PropType<chrome.tabs.Tab[]>, // 指定类型
     required: true, // 设置为必传
-    default: [], // 设置默认值
+    default: [] // 设置默认值
   },
   groupArr: {
     type: Array as PropType<chrome.tabs.Tab[][]>,
     required: true, // 设置为必传
-    default: [], // 设置默认值
-  },
+    default: [] // 设置默认值
+  }
 });
 
 const checkIds = ref<number[]>([]);
@@ -70,13 +89,15 @@ const colors = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cya
 
 let groupTitle = ref<string>("");
 let isAuto = ref<boolean>(true);
+let isAutoSort = ref<boolean>(true);
 
 // 加载初始化
 onMounted(() => {
-  chrome.storage.sync.get(["isAuto"], function(result) {
-    isAuto.value = result.isAuto
-  })
-})
+  chrome.storage.sync.get(["isAuto", "isAutoSort"], function (result) {
+    isAuto.value = result.isAuto;
+    isAutoSort.value = result.isAutoSort;
+  });
+});
 
 // /* ===================================== 操作按钮 ===================================== */
 
@@ -94,10 +115,25 @@ const handleCreateGroup = async () => {
     ElMessage("当前不存在相同域名的标签页");
   }
 };
+// 一键取消
+const handleCancelGroup = () => {
+  // 向后台脚本发送消息，触发取消分组操作
+  chrome.runtime.sendMessage({ action: "cancelGroup" });
+};
+
 // 是否开启自动分组
 const handleChangeAuto = () => {
   // 本地存储是让后台判断否开启自动分组
   chrome.storage.sync.set({ isAuto: isAuto.value }, function () {});
+};
+const handleChangeAutoSort = () => {
+  if (isAutoSort.value) {
+    isAuto.value = false;
+    // 本地存储是让后台判断否开启自动分组
+    chrome.storage.sync.set({ isAuto: false }, function () {});
+  }
+  // 本地存储是让后台判断否开启自动分组
+  chrome.storage.sync.set({ isAutoSort: isAutoSort.value }, function () {});
 };
 // 选择颜色
 const handleChangeColor = (idx: number) => {
@@ -115,7 +151,7 @@ const handleCheckGroup = async () => {
   } else {
     ElMessage({
       message: "请勾选标签页~",
-      type: "warning",
+      type: "warning"
     });
   }
 };
@@ -124,6 +160,7 @@ const handleCheckGroup = async () => {
 <style lang="scss" scoped>
 .quick-operation-container {
   width: 470px;
+  padding: 15px;
   .el-checkbox {
     width: 100%;
     .el-checkbox__label {
@@ -139,6 +176,7 @@ const handleCheckGroup = async () => {
     display: flex;
     align-items: center;
     gap: 4px;
+    margin-top: 12px;
     .form-title {
       width: 120px;
     }

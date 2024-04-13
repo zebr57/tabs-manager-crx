@@ -33,6 +33,33 @@ export default defineManifest(async (env) => ({
       run_at: "document_end"
     }
   ],
-  permissions: ["tabGroups", "tabs", "storage", "bookmarks"],
-  host_permissions: []
+  permissions: ["tabGroups", "tabs", "storage", "contextMenus", "commands"],
+  commands: {
+    // 自定义快捷键指令
+    "toggle-group": {
+      suggested_key: {
+        default: "Alt+Q"
+      },
+      description: "根据当前标签页生成/取消分组"
+    },
+    "close-group": {
+      suggested_key: {
+        default: "Alt+W"
+      },
+      description: "根据当前标签页关闭分组"
+    },
+    "sort-tab": {
+      suggested_key: {
+        default: "Alt+S"
+      },
+      description: "根据域名排序标签页"
+    }
+
+    // 映射 action （icon的事件）
+    // _execute_action: {
+    //   suggested_key: {
+    //     default: "Alt+T"
+    //   }
+    // }
+  }
 }));

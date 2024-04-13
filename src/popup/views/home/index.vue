@@ -1,21 +1,22 @@
 <template>
-  <el-tabs v-model="activeName" class="demo-tabs" type="border-card" @tab-click="handleClick">
+  <!-- <el-tabs v-model="activeName" class="demo-tabs" type="border-card" @tab-click="handleClick">
     <el-tab-pane label="快捷操作" name="first"><QuickOperation :tabsList="tabsList" :groupArr="groupArr"/></el-tab-pane>
     <el-tab-pane label="当前标签" name="second"><CurrentTabs :tabsList="tabsList" :groupObj="groupObj" /></el-tab-pane>
     <el-tab-pane label="快照记录" name="third"><SnapshotLog /></el-tab-pane>
     <el-tab-pane label="自动匹配" name="fourth"><MatchingRule /></el-tab-pane>
-  </el-tabs>
+  </el-tabs> -->
+  <QuickOperation :tabsList="tabsList" :groupArr="groupArr" />
 </template>
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import type { TabsPaneContext } from "element-plus";
+// import type { TabsPaneContext } from "element-plus";
 
 import QuickOperation from "./components/QuickOperation.vue";
-import CurrentTabs from "./components/CurrentTabs.vue";
-import SnapshotLog from "./components/SnapshotLog.vue";
-import MatchingRule from "./components/MatchingRule.vue";
+// import CurrentTabs from "./components/CurrentTabs.vue";
+// import SnapshotLog from "./components/SnapshotLog.vue";
+// import MatchingRule from "./components/MatchingRule.vue";
 
-const activeName = ref("first");
+// const activeName = ref("first");
 
 const regexp: RegExp = new RegExp("https://(.*?)/"); /* 此处定义正则表达式 */
 let tabsList = ref<chrome.tabs.Tab[]>([]);
@@ -64,9 +65,9 @@ onMounted(async () => {
   }
 });
 
-const handleClick = (tab: TabsPaneContext, event: Event) => {
-  console.log(tab, event);
-};
+// const handleClick = (tab: TabsPaneContext, event: Event) => {
+//   console.log(tab, event);
+// };
 </script>
 <style>
 .demo-tabs > .el-tabs__content {

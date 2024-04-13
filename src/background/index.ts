@@ -9,7 +9,6 @@ let tabsList: chrome.tabs.Tab[] = []; // 所有标签页
 let groupByDomainMap: { [key: string]: any } = {}; // 分组集合
 let domainList: string[] = []; // 所有标签页域名
 let groupTree: GroupType[] = []; // 标签页分群显示的树结构
-let snapshotLogTabsList: chrome.tabs.Tab[] = [];
 
 const initData = async () => {
   // 1. 获取全部标签页
@@ -30,11 +29,15 @@ const initData = async () => {
   // 5. 用于显示树节点的信息
   groupTree = getGroupTree(groupByDomainMap);
 
-  console.log("域名与标签页的 map", groupByDomainMap);
-  console.log("存在同域名可生成分组：", groupTree);
+  // console.log("所有域名键：", domainList);
+  // console.log("域名与标签页的 map", groupByDomainMap);
+  // console.log("存在同域名可生成分组：", groupTree);
 };
 
 initData();
+chrome.storage.sync.set({ isAutoSort: false, isAuto: false }, function () {
+  console.log("初始化自动排序/分组设置成功!");
+});
 
 /* ===================================== 监听行为 start ===================================== */
 let activeTab: chrome.tabs.Tab | null = null;
@@ -45,55 +48,31 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
   // 获取当前选项卡的信息
   chrome.tabs.get(tabId, function (tab) {
     console.log("当前选项卡信息:", tab);
-    // const currentUrl = new URL(tab.url as string);
-    // const subdomain = currentUrl.hostname.split(".").slice(0, -2).join(".");
-    // console.log("当前标签页的子域名：", subdomain);
     activeTab = tab;
   });
 });
 
-// 添加tabs.onCreated事件(新建标签页)
-chrome.tabs.onCreated.addListener(function (tab: chrome.tabs.Tab) {
-  console.log(tab);
-});
 // 监听popup.js按钮点击事件
 chrome.runtime.onMessage.addListener(async (request) => {
-  console.log(request, activeTab);
-  const { action, tab, isLast } = request;
-  if (tab) {
-    snapshotLogTabsList.push(tab);
-    const tabIds: number[] = snapshotLogTabsList.map(({ id }) => id as number);
-    chrome.tabs.group({ tabIds }, function () {
-      console.log("create group success!!");
-      if (isLast) {
-        snapshotLogTabsList = [];
-        chrome.tabs.update(tab.id, { active: true });
-      }
-    }); // 组合标签页
-  } else if (action == "autoGroup") {
-    await autoGroup();
-  }
-  if (!activeTab) return;
-  const groupId = activeTab.groupId;
-  if (groupId != -1) {
-    // Todo：到时候改为快捷键方式
-    const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: groupId });
-    const tabIds: number[] = groupTabs.map((t) => t.id as number);
-    switch (action) {
-      case "cancelGroup":
-        // 取消组合（解散选项卡组）
-        await chrome.tabs.ungroup(tabIds);
-        break;
-      case "closeGroup":
-        // 关闭组合（关闭选项卡组）
-        await chrome.tabs.remove(tabIds);
-        break;
-      default:
-        break;
-    }
-  } else {
-    // chrome.tabs.create({ url: "chrome-extension://pgapimkopipddcbfnmbebbnfhbkmpjoe/popup/popup.html" });
-    console.log("当前页面没有分组");
+  console.log(request.action);
+  const { action } = request;
+  switch (action) {
+    case "autoGroup": // 一键创建分组
+      autoGroup();
+      break;
+    case "cancelGroup": // 取消所有分组
+      chrome.tabGroups.query({}, function (groups) {
+        groups.forEach(function (group) {
+          // console.log("Group ID: " + JSON.stringify(group));
+          chrome.tabs.query({ groupId: group.id }, (tabs) => {
+            const tabIds: number[] = tabs.map((t) => t.id as number);
+            chrome.tabs.ungroup(tabIds);
+          });
+        });
+      });
+      break;
+    default:
+      break;
   }
 });
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
@@ -101,41 +80,73 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   if (changeInfo.url) {
     console.log("地址栏URL变化：", tabId, changeInfo.url, tab);
     // 在此处进行其他操作
-    chrome.storage.sync.get(["isAuto"], async function (result) {
+    chrome.storage.sync.get(["isAutoSort", "isAuto"], function (result) {
       // 1. 是否开启
-      if (!result.isAuto) return;
+      if (!result.isAutoSort) return;
       // 2. 获取新建选项卡信息，进行匹配创建分组
-      chrome.tabs.get(tabId, function (tab) {
-        createMatchGroup(tab);
-      });
+      if (result.isAuto) {
+        chrome.tabs.get(tabId, function (tab) {
+          createMatchGroup(tab);
+        });
+      } else {
+        // 找出最后一个符合的元素索引
+        chrome.tabs.query({ currentWindow: true }, (tabs) => {
+          const lastIndex = findLastIndex(tabs, (t) => {
+            return t.index != tab.index && getDomain(t.url) == getDomain(tab.url);
+          });
+          // 移动指定位置
+          if (lastIndex != -1) chrome.tabs.move(tabId, { index: lastIndex + 1 });
+        });
+      }
     });
   }
 });
-/* ===================================== 监听行为 end ===================================== */
-
-// 获取所有书签
-chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
-  // 处理书签信息
-  console.log(bookmarkTreeNodes);
-
-  // for (const node of bookmarkTreeNodes) {
-  //   processBookmarkNode(node);
-  // }
+/**
+ * @description: 监听自定义快捷键指令
+ */
+chrome.commands.onCommand.addListener(async (command, tab) => {
+  console.log(`Command "${command}" called`);
+  // 根据当前活跃标签页进行操作
+  const [currentTab]: chrome.tabs.Tab[] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+  if (command == "toggle-group") {
+    const groupId = currentTab.groupId;
+    if (groupId != -1) {
+      // (解散选项卡组)
+      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: groupId });
+      const tabIds: number[] = groupTabs.map((t) => t.id as number);
+      await chrome.tabs.ungroup(tabIds);
+    } else {
+      // (创建分组)
+      await initData();
+      const tabUrl = getDomain(currentTab.url);
+      if (groupByDomainMap[tabUrl].length >= 2) {
+        const tabIds = groupByDomainMap[tabUrl].map((t: chrome.tabs.Tab) => t.id as number);
+        const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+        const title = getDomain(tab.url);
+        await chrome.tabGroups.update(groupId, { title });
+      } else {
+        console.warn("当前不存在其他相同域名的页面");
+      }
+    }
+  } else if (command == "close-group") {
+    // （关闭选项卡组）
+    const groupId = currentTab.groupId;
+    if (groupId != -1) {
+      // (解散选项卡组)
+      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: groupId });
+      const tabIds: number[] = groupTabs.map((t) => t.id as number);
+      await chrome.tabs.remove(tabIds);
+    }
+  } else if (command == "sort-tab") {
+    // 以下方式不影响原有顺序，效果跟分组一样，将后续移至第一个标签页后面
+    await autoGroup();
+    await cancelGroup();
+  }
 });
-
-// 处理书签节点
-// function processBookmarkNode(node) {
-//   if (node.children) {
-//     // 这是一个文件夹，递归处理其子节点
-//     for (const childNode of node.children) {
-//       processBookmarkNode(childNode);
-//     }
-//   } else {
-//     // 这是一个书签，打印其信息
-//     console.log("书签名称: " + node.title);
-//     console.log("书签URL: " + node.url);
-//   }
-// }
+/* ===================================== 监听行为 end ===================================== */
 
 /* ===================================== utils ===================================== */
 /**
@@ -209,7 +220,7 @@ const autoGroup = async () => {
     console.log("当前不存在相同域名的标签页");
   }
 };
-// 找出存在两个及以上标签页生成分组
+// 找出存在两个及以上并还没分组标签页生成分组
 const createMatchGroup = async (tab: chrome.tabs.Tab) => {
   await initData();
   console.log("groupTree", groupTree);
@@ -242,6 +253,7 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
         if (tabIds.length <= 1) return;
 
         const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+
         const title = getDomain(tab.url);
         await chrome.tabGroups.update(groupId, { title });
       }
@@ -251,9 +263,34 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
   }
 };
 
-// const setGroup = (tab: chrome.tabs.Tab) => {
-//   // 1. 获取当前所有分组信息
-//   // chrome.tabGroups.get()
-//   // 2. 查找对应分组
-//   // 3. 将标签页添加进去
-// };
+/**
+ * @description: 一键取消所有分组
+ */
+const cancelGroup = async () => {
+  const groups = await chrome.tabGroups.query({});
+  groups.forEach(async (group) => {
+    // console.log("Group ID: " + JSON.stringify(group));
+    const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: group.id });
+    const tabIds: number[] = tabs.map((t) => t.id as number);
+    await chrome.tabs.ungroup(tabIds);
+  });
+};
+
+/**
+ * @description 找出最后一个符合条件的元素索引
+ * @param array 数组
+ * @param condition 条件
+ * @returns index
+ */
+// 定义回调函数类型
+const findLastIndex = <T>(
+  array: T[],
+  condition: (element: T, index: number, array: T[]) => boolean
+): number => {
+  for (let i = array.length - 1; i >= 0; i--) {
+    if (condition(array[i], i, array)) {
+      return i;
+    }
+  }
+  return -1;
+};
