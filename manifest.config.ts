@@ -10,18 +10,18 @@ export default defineManifest(async (env) => ({
   action: {
     default_popup: "index.html",
     default_icon: {
-      "16": "images/icon-16.png",
-      "32": "images/icon-32.png",
-      "48": "images/icon-48.png",
-      "128": "images/icon-128.png"
+      "16": "images/tqg-base-icon-128.png",
+      "32": "images/tqg-base-icon-128.png",
+      "48": "images/tqg-base-icon-128.png",
+      "128": "images/tqg-base-icon-128.png"
     },
     default_title: "Tab Quick Group"
   },
   icons: {
-    "16": "images/icon-16.png",
-    "32": "images/icon-32.png",
-    "48": "images/icon-48.png",
-    "128": "images/icon-128.png"
+    "16": "images/tqg-base-icon-128.png",
+    "32": "images/tqg-base-icon-128.png",
+    "48": "images/tqg-base-icon-128.png",
+    "128": "images/tqg-base-icon-128.png"
   },
   background: {
     service_worker: "src/background/index.ts"
