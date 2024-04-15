@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
+    "canvas-confetti": "^1.9.2",
     "chrome-types": "^0.1.231",
     "element-plus": "^2.4.0",
     "vue": "^3.3.4",

@@ -40,6 +40,13 @@ chrome.storage.sync.set({ isAutoSort: true, isAuto: true }, function () {
 });
 
 /* ===================================== 监听行为 start ===================================== */
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  if (reason === "install") {
+    chrome.tabs.create({
+      url: "src/otherPage/help/index.html"
+    });
+  }
+});
 let activeTab: chrome.tabs.Tab | null = null;
 // 添加tabs.onActivated事件监听器(切换标签页)
 chrome.tabs.onActivated.addListener(function (activeInfo) {

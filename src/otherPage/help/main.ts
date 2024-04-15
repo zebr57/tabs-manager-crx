@@ -1,1 +1,0 @@
-console.log('crx help main.ts')

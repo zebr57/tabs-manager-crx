@@ -1,13 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CRX Help</title>
+    <title>welcome to Tab Quick Group</title>
+    <style>
+      :root {
+        font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+        line-height: 1.5;
+        font-weight: 400;
+
+        color-scheme: light dark;
+        color: rgba(255, 255, 255, 0.87);
+        background-color: #242424;
+
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        place-items: center;
+        min-width: 280px;
+        min-height: 100vh;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 3.2em;
+        line-height: 1.1;
+      }
+
+      #app {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .card {
+        padding: 2em;
+      }
+
+      .read-the-docs {
+        color: #888;
+      }
+
+      button {
+        border-radius: 8px;
+        border: 1px solid transparent;
+        padding: 0.6em 1.2em;
+        font-size: 1em;
+        font-weight: 500;
+        font-family: inherit;
+        background-color: #1a1a1a;
+        cursor: pointer;
+        transition: border-color 0.25s;
+      }
+      button:hover {
+        border-color: #646cff;
+      }
+      button:focus,
+      button:focus-visible {
+        outline: 4px auto -webkit-focus-ring-color;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          color: #213547;
+          background-color: #ffffff;
+        }
+        a:hover {
+          color: #747bff;
+        }
+        button {
+          background-color: #f9f9f9;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="./main.ts"></script>
+    <div id="app">
+      <h1>🎉 欢迎使用 Tab Quick Group 标签快速分组扩展</h1>
+      <h2>帮助你将标签页进行快速排序、分组，提供方便的快捷键操作！</h2>
+      <button class="read-btn">查看帮助文档</button>
+    </div>
+    <script type="module" src="helpMain.js"></script>
   </body>
 </html>
