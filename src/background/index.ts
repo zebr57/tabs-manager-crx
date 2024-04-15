@@ -35,7 +35,7 @@ const initData = async () => {
 };
 
 initData();
-chrome.storage.sync.set({ isAutoSort: false, isAuto: false }, function () {
+chrome.storage.sync.set({ isAutoSort: true, isAuto: true }, function () {
   console.log("初始化自动排序/分组设置成功!");
 });
 
@@ -47,8 +47,22 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 
   // 获取当前选项卡的信息
   chrome.tabs.get(tabId, function (tab) {
-    console.log("当前选项卡信息:", tab);
+    // console.log("当前选项卡信息:", tab);
     activeTab = tab;
+  });
+});
+// 监听关闭标签页
+chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
+  // 查询所有分组，查询每个分组是否只剩下一个tab，则取消分组
+  chrome.tabGroups.query({}, function (groups) {
+    groups.forEach((group) => {
+      chrome.tabs.query({ groupId: group.id }, (tabs) => {
+        if (tabs.length == 1) {
+          const tabIds = tabs.map((tab) => tab.id as number);
+          chrome.tabs.ungroup(tabIds);
+        }
+      });
+    });
   });
 });
 
@@ -61,15 +75,7 @@ chrome.runtime.onMessage.addListener(async (request) => {
       autoGroup();
       break;
     case "cancelGroup": // 取消所有分组
-      chrome.tabGroups.query({}, function (groups) {
-        groups.forEach(function (group) {
-          // console.log("Group ID: " + JSON.stringify(group));
-          chrome.tabs.query({ groupId: group.id }, (tabs) => {
-            const tabIds: number[] = tabs.map((t) => t.id as number);
-            chrome.tabs.ungroup(tabIds);
-          });
-        });
-      });
+      cancelGroup();
       break;
     default:
       break;
@@ -78,7 +84,6 @@ chrome.runtime.onMessage.addListener(async (request) => {
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   // 当地址栏URL变化时执行处理逻辑
   if (changeInfo.url) {
-    console.log("地址栏URL变化：", tabId, changeInfo.url, tab);
     // 在此处进行其他操作
     chrome.storage.sync.get(["isAutoSort", "isAuto"], function (result) {
       // 1. 是否开启
@@ -222,44 +227,34 @@ const autoGroup = async () => {
 };
 // 找出存在两个及以上并还没分组标签页生成分组
 const createMatchGroup = async (tab: chrome.tabs.Tab) => {
+  const domain = getDomain(tab.url);
+  if (!domain) return; // 不是正确域名，终止操作
+
   await initData();
-  console.log("groupTree", groupTree);
 
-  if (tab.url) {
-    const domain = getDomain(tab.url);
-    console.log("新打开标签域名：", domain);
-
-    if (!domain) return; // 不是正确域名，终止操作
-    // 这里有个问题有些网站是http://wwww.ex.com 跳转 https://wwww.ex.com，导致创建不了分组。
-    // 解决：改变匹配正则，只匹配域名
-
-    const group: GroupType | undefined = groupTree.find((e) => e.url == domain);
-    console.log(group, "group");
-
-    if (group && group.children.length >= 3) {
-      chrome.tabGroups.query({}, (groups) => {
-        const group = groups.find((e) => e.title == domain);
-        chrome.tabs.group({ tabIds: tab.id, groupId: group?.id });
-      });
-    } else {
-      // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
-      const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
-      console.log("未分组选项卡：", noGroupTabs);
-      // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
-      const findTabs = noGroupTabs.filter((e) => e.url?.indexOf(domain) != -1);
-      if (findTabs) {
-        const tabIds: number[] = findTabs.map((e) => e.id as number);
-
-        if (tabIds.length <= 1) return;
-
-        const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
-
-        const title = getDomain(tab.url);
-        await chrome.tabGroups.update(groupId, { title });
-      }
-    }
+  // 这里有个问题有些网站是http://wwww.ex.com 跳转 https://wwww.ex.com，导致创建不了分组。
+  // 解决：改变匹配正则，只匹配域名
+  const groups = await chrome.tabGroups.query({});
+  const findGroup = groups.find((e) => e.title == domain);
+  if (findGroup) {
+    chrome.tabs.group({ tabIds: tab.id, groupId: findGroup.id }, () => {
+      console.log("已存在分组，加入分组成功!");
+    });
   } else {
-    console.warn("新打开选项卡url：", tab.url);
+    // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
+    const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
+    // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
+    const findTabs = noGroupTabs.filter((e) => e.url?.indexOf(domain) != -1);
+    if (findTabs) {
+      const tabIds: number[] = findTabs.map((e) => e.id as number);
+
+      if (tabIds.length <= 1) return;
+
+      const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+
+      const title = getDomain(tab.url);
+      await chrome.tabGroups.update(groupId, { title });
+    }
   }
 };
 
@@ -269,7 +264,6 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
 const cancelGroup = async () => {
   const groups = await chrome.tabGroups.query({});
   groups.forEach(async (group) => {
-    // console.log("Group ID: " + JSON.stringify(group));
     const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: group.id });
     const tabIds: number[] = tabs.map((t) => t.id as number);
     await chrome.tabs.ungroup(tabIds);
