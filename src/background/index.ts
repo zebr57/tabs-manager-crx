@@ -244,16 +244,16 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
     // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
     const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
     // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
-    const findTabs = noGroupTabs.filter((e) => e.url?.indexOf(domain) != -1);
+
+    const findTabs = noGroupTabs.filter((e) => getDomain(e.url) == domain);
     if (findTabs) {
       const tabIds: number[] = findTabs.map((e) => e.id as number);
 
       if (tabIds.length <= 1) return;
 
-      const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+      const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
 
-      const title = getDomain(tab.url);
-      await chrome.tabGroups.update(groupId, { title });
+      await chrome.tabGroups.update(groupId, { title: domain });
     }
   }
 };
