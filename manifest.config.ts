@@ -3,9 +3,9 @@ import packageJson from "./package.json";
 const { version } = packageJson;
 
 export default defineManifest(async (env) => ({
-  name: "标签管理器beta",
+  name: "Tab Quick Group",
   version: version,
-  description: "标签页自动分组、自定义分组功能",
+  description: "自动为标签排序和分组，使用快捷键快速为当前标签创建/取消/关闭分组。",
   manifest_version: 3,
   action: {
     default_popup: "index.html",
@@ -15,7 +15,7 @@ export default defineManifest(async (env) => ({
       "48": "images/icon-48.png",
       "128": "images/icon-128.png"
     },
-    default_title: "Vue CRX MV3"
+    default_title: "Tab Quick Group"
   },
   icons: {
     "16": "images/icon-16.png",

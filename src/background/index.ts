@@ -52,7 +52,7 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
   });
 });
 // 监听关闭标签页
-chrome.tabs.onRemoved.addListener(function (tabId, removeInfo) {
+chrome.tabs.onRemoved.addListener(function () {
   // 查询所有分组，查询每个分组是否只剩下一个tab，则取消分组
   chrome.tabGroups.query({}, function (groups) {
     groups.forEach((group) => {

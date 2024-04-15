@@ -70,17 +70,17 @@ import { ref, defineProps, toRaw, onMounted } from "vue";
 import type { PropType } from "vue";
 import { ElMessage } from "element-plus";
 
-const { tabsList, groupArr } = defineProps({
+const { tabsList } = defineProps({
   tabsList: {
     type: Array as PropType<chrome.tabs.Tab[]>, // 指定类型
     required: true, // 设置为必传
     default: [] // 设置默认值
-  },
-  groupArr: {
-    type: Array as PropType<chrome.tabs.Tab[][]>,
-    required: true, // 设置为必传
-    default: [] // 设置默认值
   }
+  // groupArr: {
+  //   type: Array as PropType<chrome.tabs.Tab[][]>,
+  //   required: true, // 设置为必传
+  //   default: [] // 设置默认值
+  // }
 });
 
 const checkIds = ref<number[]>([]);
