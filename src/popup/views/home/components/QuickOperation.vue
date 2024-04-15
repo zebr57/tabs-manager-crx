@@ -40,7 +40,7 @@
         <el-input v-model="groupTitle" placeholder="请输入分组名" size="small" clearable></el-input>
       </div>
       <div class="form-color">
-        <el-popover placement="bottom" :width="230" trigger="click">
+        <el-popover placement="bottom" :width="260" trigger="click">
           <template #reference>
             <div class="color-check" :style="{ backgroundColor: colors[colorIdx] }"></div>
           </template>
@@ -85,7 +85,7 @@ const { tabsList, groupArr } = defineProps({
 
 const checkIds = ref<number[]>([]);
 const colorIdx = ref<number>(0);
-const colors = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan"];
+const colors = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
 
 let groupTitle = ref<string>("");
 let isAuto = ref<boolean>(true);
@@ -104,16 +104,6 @@ onMounted(() => {
 // 一键生成
 const handleCreateGroup = async () => {
   chrome.runtime.sendMessage({ action: "autoGroup" });
-  return;
-  if (groupArr && groupArr.length > 0) {
-    for (const tabs of groupArr) {
-      const tabIds = tabs.map(({ id }: chrome.tabs.Tab) => id) as number[];
-      await chrome.tabs.group({ tabIds }); // 组合标签页
-      // await chrome.tabGroups.update(group, { title: "" }); //设置组合标签页标题
-    }
-  } else {
-    ElMessage("当前不存在相同域名的标签页");
-  }
 };
 // 一键取消
 const handleCancelGroup = () => {
@@ -145,7 +135,10 @@ const handleCheckGroup = async () => {
     const tabIds = toRaw(checkIds.value);
     const title = groupTitle.value;
     const group: number = await chrome.tabs.group({ tabIds }); // 组合标签页
-    await chrome.tabGroups.update(group, { title }); //设置组合标签页标题
+    await chrome.tabGroups.update(group, {
+      title,
+      color: colors[colorIdx.value] as chrome.tabGroups.ColorEnum
+    }); //设置组合标签页标题
     checkIds.value = []; // 重置
     colorIdx.value = 0;
   } else {
