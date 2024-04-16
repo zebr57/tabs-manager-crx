@@ -219,49 +219,56 @@ const getGroupTree = (groupByDomainMap: { [key: string]: any }) => {
 };
 // 一键根据同域名自动分组
 const autoGroup = async () => {
-  await initData();
-  if (groupTree && groupTree.length > 0) {
-    for (const item of groupTree) {
-      const tabIds = item.children.map(({ id }: chrome.tabs.Tab) => id) as number[];
-      const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
-      item.groupId = groupId;
-      const title = item.url; // url：xxx.com
-      await chrome.tabGroups.update(groupId, { title });
+  try {
+    await initData();
+    if (groupTree && groupTree.length > 0) {
+      for (const item of groupTree) {
+        const tabIds = item.children.map(({ id }: chrome.tabs.Tab) => id) as number[];
+        const groupId: number = await chrome.tabs.group({ tabIds }); // 组合标签页
+        item.groupId = groupId;
+        const title = item.url; // url：xxx.com
+        await chrome.tabGroups.update(groupId, { title });
+      }
+    } else {
+      console.log("当前不存在相同域名的标签页");
     }
-  } else {
-    console.log("当前不存在相同域名的标签页");
+  } catch (error) {
+    console.error("autoGroup()", error);
   }
 };
 // 找出存在两个及以上并还没分组标签页生成分组
 const createMatchGroup = async (tab: chrome.tabs.Tab) => {
   const domain = getDomain(tab.url);
   if (!domain) return; // 不是正确域名，终止操作
+  try {
+    await initData();
 
-  await initData();
+    // 这里有个问题有些网站是http://wwww.ex.com 跳转 https://wwww.ex.com，导致创建不了分组。
+    // 解决：改变匹配正则，只匹配域名
+    const groups = await chrome.tabGroups.query({});
+    const findGroup = groups.find((e) => e.title == domain);
+    if (findGroup) {
+      chrome.tabs.group({ tabIds: tab.id, groupId: findGroup.id }, () => {
+        console.log("已存在分组，加入分组成功!");
+      });
+    } else {
+      // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
+      const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
+      // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
 
-  // 这里有个问题有些网站是http://wwww.ex.com 跳转 https://wwww.ex.com，导致创建不了分组。
-  // 解决：改变匹配正则，只匹配域名
-  const groups = await chrome.tabGroups.query({});
-  const findGroup = groups.find((e) => e.title == domain);
-  if (findGroup) {
-    chrome.tabs.group({ tabIds: tab.id, groupId: findGroup.id }, () => {
-      console.log("已存在分组，加入分组成功!");
-    });
-  } else {
-    // 没有符合的分组，需要判断有没有存在相同域名且不在分组中的选项卡，有则生成
-    const noGroupTabs = await chrome.tabs.query({ currentWindow: true, groupId: -1 });
-    // 查询所有未分组的选项卡，过滤出相同域名的id集合，建立分组
+      const findTabs = noGroupTabs.filter((e) => getDomain(e.url) == domain);
+      if (findTabs) {
+        const tabIds: number[] = findTabs.map((e) => e.id as number);
 
-    const findTabs = noGroupTabs.filter((e) => getDomain(e.url) == domain);
-    if (findTabs) {
-      const tabIds: number[] = findTabs.map((e) => e.id as number);
+        if (tabIds.length <= 1) return;
 
-      if (tabIds.length <= 1) return;
+        const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
 
-      const groupId: number = await chrome.tabs.group({ tabIds: [...tabIds, tab.id as number] }); // 组合标签页
-
-      await chrome.tabGroups.update(groupId, { title: domain });
+        await chrome.tabGroups.update(groupId, { title: domain });
+      }
     }
+  } catch (error) {
+    console.error("createMatchGroup()", error);
   }
 };
 
@@ -269,12 +276,16 @@ const createMatchGroup = async (tab: chrome.tabs.Tab) => {
  * @description: 一键取消所有分组
  */
 const cancelGroup = async () => {
-  const groups = await chrome.tabGroups.query({});
-  groups.forEach(async (group) => {
-    const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: group.id });
-    const tabIds: number[] = tabs.map((t) => t.id as number);
-    await chrome.tabs.ungroup(tabIds);
-  });
+  try {
+    const groups = await chrome.tabGroups.query({});
+    groups.forEach(async (group) => {
+      const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: group.id });
+      const tabIds: number[] = tabs.map((t) => t.id as number);
+      await chrome.tabs.ungroup(tabIds);
+    });
+  } catch (error) {
+    console.error("cancelGroup()", error);
+  }
 };
 
 /**
