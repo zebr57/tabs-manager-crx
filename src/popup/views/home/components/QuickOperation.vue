@@ -29,7 +29,13 @@
     <el-checkbox-group v-model="checkIds" size="normal">
       <el-checkbox v-for="tab in tabsList" :key="tab.id" :label="tab.id">
         <div style="display: flex; align-items: center; gap: 4px">
-          <img :src="tab.favIconUrl" alt="" srcset="" width="16" height="16" />
+          <img
+            :src="tab.favIconUrl ? tab.favIconUrl : favIcon"
+            alt=""
+            srcset=""
+            width="16"
+            height="16"
+          />
           {{ tab.title }}
         </div>
       </el-checkbox>
@@ -69,7 +75,7 @@
 import { ref, defineProps, toRaw, onMounted } from "vue";
 import type { PropType } from "vue";
 import { ElMessage } from "element-plus";
-
+import favIcon from "../../../../assets/images/chrome.png";
 const { tabsList } = defineProps({
   tabsList: {
     type: Array as PropType<chrome.tabs.Tab[]>, // 指定类型
