@@ -33,7 +33,7 @@ export default defineManifest(async (env) => ({
       run_at: "document_end"
     }
   ],
-  permissions: ["tabGroups", "tabs", "storage", "contextMenus", "commands"],
+  permissions: ["tabGroups", "tabs", "storage", "cookies", "commands"],
   commands: {
     // 自定义快捷键指令
     "toggle-group": {
