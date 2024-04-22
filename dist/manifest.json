@@ -23,17 +23,6 @@
     "service_worker": "service-worker-loader.js",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "js": [
-        "assets/index.ts-loader-6a202bbe.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ],
-      "run_at": "document_end"
-    }
-  ],
   "permissions": [
     "tabGroups",
     "tabs",
@@ -59,16 +48,5 @@
       },
       "description": "根据域名排序标签页"
     }
-  },
-  "web_accessible_resources": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "resources": [
-        "assets/index.ts-4ed993c7.js"
-      ],
-      "use_dynamic_url": true
-    }
-  ]
+  }
 }

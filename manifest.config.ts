@@ -26,13 +26,6 @@ export default defineManifest(async (env) => ({
   background: {
     service_worker: "src/background/index.ts"
   },
-  content_scripts: [
-    {
-      matches: ["<all_urls>"],
-      js: ["src/content/index.ts"],
-      run_at: "document_end"
-    }
-  ],
   permissions: ["tabGroups", "tabs", "storage", "commands"],
   commands: {
     // 自定义快捷键指令
