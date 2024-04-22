@@ -31,7 +31,6 @@
         <div style="display: flex; align-items: center; gap: 4px">
           <img
             :src="tab.favIconUrl ? tab.favIconUrl : favIcon"
-            crossorigin="anonymous"
             alt=""
             srcset=""
             width="16"
