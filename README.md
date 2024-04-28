@@ -1,19 +1,67 @@
-# 基于 Vue 3 + TypeScript + Vite 开发的谷歌浏览器扩展插件 - 标签分组管理器
+# Tab Quick Group 标签快速分组扩展
 
-项目概述：基于chrome extension API 实现的对于谷歌浏览器标签页自动分组、自定义分组功能。
+## 概览
 
-应用场景：由于作为开发人员经常使用浏览器时会打开多个页面，切换页面想要打开之前页面时查找不方便，这时可以借助谷歌浏览器自带标签页分组功能，这需要手动一个一个去操作，比较繁琐，因此借助谷歌浏览器插件扩展API，实现自动化、定制化分组管理，非常快捷方便。
+基于 chrome extension API 实现的 chrome 标签页分组管理扩展，让你的标签栏排序整洁、方便查找。其主要功能有：
 
-项目采用Vite+Vue3+Ts+Element-Plus搭建项目，编写node脚本修改打包目录，实现以下功能：
-- 快捷操作：一键生成、取消分组、勾选指定标签页生成分组
-- 当前标签：将当前窗口打开的所有标签以树节点展示，可进行修改分组标题、颜色，展开折叠、移至窗口、记录快照、关闭标签/分组功能
-- 快照记录：保存分组、标签页，方便下次快速打开
-- 自动匹配：输入匹配规则，标签匹配自动分组
+- 标签页自动排序/分组
+- 一键自动生成/取消分组
+- 勾选标签页进行命名分组
+- 快速生成/取消同域名分组（`⌥+Q`）
+- 快速关闭当前分组（`⌥+W`）
+- 快速排序标签页（`⌥+S`）
 
-项目运行： 
+系统快捷键：
+
+- Window: `Alt`
+- Mac: `⌥`
+
+## 下载安装
+
+[chrome 应用商店](https://chromewebstore.google.com/detail/jcdjkkkngigioljkkbbbmnegegamhcjp/privacy)
+[github](https://github.com/zebr57/tabs-manager-crx/tree/master/dist)
+
+## 效果演示
+
+### 自动排序/分组
+
+当我们打开新的 url 地址时，会检测是否存在多个相同域名的标签并进行排序/分组。
+
+![自动排序](./src//assets/images/auto-sort.gif)
+![自动分组](./src//assets/images/auto-group.gif)
+
+### 一键自动生成/取消分组、勾选标签页进行命名分组
+
+当我们点击：`一键生成分组` 将所有标签页进行同域名分组，`一键取消分组` 将取消所有分组。
+
+勾选标签页选项，输入分组名、选择颜色、点击`生成分组`，即可为选中的标签页生成一个分组。
+
+![快捷操作](./src//assets/images/quick-group.gif)
+
+### 快速生成/取消同域名分组（快捷键操作）
+
+按 `⌥+Q` ，会自动检测当前标签页是否已分组，是则取消分组，否则将多个同域名标签生成分组。
+
+![快速生成/取消](./src//assets/images/quick-toggle.gif)
+
+### 快速关闭当前分组（快捷键操作）
+
+按 `⌥+W` ，会自动检测当前标签页是否已加入分组，是则关闭分组，否则忽略操作。
+
+![快速关闭](./src//assets/images/quick-close.gif)
+
+### 快速排序标签页（快捷键操作）
+
+按 `⌥+S` ，根据同域名排序标签，标签不再杂乱。
+
+![快速排序](./src//assets/images/quick-sort.gif)
+
+## 项目运行
+
 - node v18.14.2
-- 包管理 yarn 
-- 执行 yarn build 生成dist
+- 构建工具 vite + crxjs
+- 包管理 yarn
+- 执行 yarn build 生成 dist
 - 打开浏览器扩展管理 chrome://extensions/
 - 点击加载已解压的扩展程序
-- 选择dist-crx所在文件目录
+- 选择 dist 所在文件目录
