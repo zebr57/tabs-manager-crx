@@ -63,7 +63,7 @@ chrome.tabs.onRemoved.addListener(function () {
   // 查询所有分组，查询每个分组是否只剩下一个tab，则取消分组
   chrome.tabGroups.query({}, function (groups) {
     groups.forEach((group) => {
-      chrome.tabs.query({ groupId: group.id }, (tabs) => {
+      chrome.tabs.query({ groupId: group.id, currentWindow: true }, (tabs) => {
         if (tabs.length == 1) {
           const tabIds = tabs.map((tab) => tab.id as number);
           chrome.tabs.ungroup(tabIds);
@@ -127,7 +127,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
     const groupId = currentTab.groupId;
     if (groupId != -1) {
       // (解散选项卡组)
-      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: groupId });
+      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({
+        groupId: groupId,
+        currentWindow: true
+      });
       const tabIds: number[] = groupTabs.map((t) => t.id as number);
       await chrome.tabs.ungroup(tabIds);
     } else {
@@ -148,7 +151,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
     const groupId = currentTab.groupId;
     if (groupId != -1) {
       // (解散选项卡组)
-      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: groupId });
+      const groupTabs: chrome.tabs.Tab[] = await chrome.tabs.query({
+        groupId: groupId,
+        currentWindow: true
+      });
       const tabIds: number[] = groupTabs.map((t) => t.id as number);
       await chrome.tabs.remove(tabIds);
     }
@@ -279,7 +285,10 @@ const cancelGroup = async () => {
   try {
     const groups = await chrome.tabGroups.query({});
     groups.forEach(async (group) => {
-      const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({ groupId: group.id });
+      const tabs: chrome.tabs.Tab[] = await chrome.tabs.query({
+        groupId: group.id,
+        currentWindow: true
+      });
       const tabIds: number[] = tabs.map((t) => t.id as number);
       await chrome.tabs.ungroup(tabIds);
     });
