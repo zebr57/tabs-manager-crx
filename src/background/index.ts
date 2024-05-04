@@ -35,15 +35,15 @@ const initData = async () => {
 };
 
 initData();
-chrome.storage.sync.set({ isAutoSort: true, isAuto: true }, function () {
-  console.log("初始化自动排序/分组设置成功!");
-});
 
 /* ===================================== 监听行为 start ===================================== */
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   if (reason === "install") {
     chrome.tabs.create({
       url: "src/otherPage/help/index.html"
+    });
+    chrome.storage.sync.set({ isAutoSort: true, isAuto: true }, function () {
+      console.log("初始化自动排序/分组设置成功!");
     });
   }
 });
