@@ -92,7 +92,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   // 当地址栏URL变化时执行处理逻辑
   if (changeInfo.url) {
     // 在此处进行其他操作
-    chrome.storage.sync.get(["isAutoSort", "isAuto"], function (result) {
+    chrome.storage.sync.get(["isAutoSort", "isAuto"], async function (result) {
       // 1. 是否开启
       if (!result.isAutoSort) return;
       // 2. 获取新建选项卡信息，进行匹配创建分组
@@ -101,6 +101,11 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
           createMatchGroup(tab);
         });
       } else {
+        // Changed：改为自动排序逻辑，解决在当前位置改变地址自动排序位置错乱问题
+        await autoGroup();
+        await cancelGroup();
+        return;
+
         // 找出最后一个符合的元素索引
         chrome.tabs.query({ currentWindow: true }, (tabs) => {
           const lastIndex = findLastIndex(tabs, (t) => {
